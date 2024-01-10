@@ -1,2 +1,4 @@
 ﻿  KlientKST1.cpp
+C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(60,73): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(37): warning C4715: 'Client::SetUP': not all control paths return a value
   KlientKST1.vcxproj -> C:\Users\Давід\source\repos\Lab1\KlientKST1\x64\Debug\KlientKST1.exe
