@@ -67,13 +67,13 @@ public:
 
 
 		if (choice == "get") {
-			int nameLenght;
-			recv(clientSocket, (char*)&nameLenght, sizeof(int), 0);
-			std::vector<char> nameBuffer(nameLenght);
-			recv(clientSocket, nameBuffer.data(), nameLenght, 0);
-			std::string name(nameBuffer.begin(), nameBuffer.end());
-			std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database\\" + name;
-
+		int nameLenght;
+		recv(clientSocket, (char*)&nameLenght, sizeof(int), 0);
+		std::vector<char> nameBuffer(nameLenght);
+		recv(clientSocket, nameBuffer.data(), nameLenght, 0);
+		std::string name(nameBuffer.begin(), nameBuffer.end());
+		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database\\" + name;
+		
 			std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 			std::streamsize fileSize = file.tellg();
 			file.seekg(0, std::ios::beg);
@@ -82,13 +82,13 @@ public:
 			if (file.read(fileBuffer.data(), fileSize)) {
 				send(clientSocket, fileBuffer.data(), fileSize, 0);
 			}
-
+			
 			file.close();
 		}
-		if (choice == "list")
+		if (choice=="list")
 		{
 			for (const auto& entry : std::filesystem::directory_iterator("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database")) {
-				int lenght = entry.path().string().size();
+				int lenght= entry.path().string().size();
 				send(clientSocket, (char*)&lenght, sizeof(int), 0);
 				send(clientSocket, entry.path().string().c_str(), lenght, 0);
 			}
@@ -97,14 +97,14 @@ public:
 			send(clientSocket, (char*)&endLength, sizeof(int), 0);
 			send(clientSocket, end.c_str(), endLength, 0);
 		}
-		if (choice == "put")
+		if (choice=="put")
 		{
 
 			int nameLenght;
-			recv(clientSocket, (char*)&nameLenght, sizeof(int), 0);
-			std::vector<char> nameBuffer(nameLenght);
-			recv(clientSocket, nameBuffer.data(), nameLenght, 0);
-			std::string name(nameBuffer.begin(), nameBuffer.end());
+		recv(clientSocket, (char*)&nameLenght, sizeof(int), 0);
+		std::vector<char> nameBuffer(nameLenght);
+		recv(clientSocket, nameBuffer.data(), nameLenght, 0);
+		std::string name(nameBuffer.begin(), nameBuffer.end());
 
 			std::streamsize fileSize;
 			if (recv(clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) {
@@ -112,7 +112,7 @@ public:
 				std::cout << WSAGetLastError() << std::endl;
 			}
 
-			std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database\\" + name, std::ios::binary);
+			std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database\\"+name, std::ios::binary);
 			std::vector<char> fileBuffer(fileSize);
 			if (recv(clientSocket, fileBuffer.data(), fileSize, 0) != SOCKET_ERROR) {
 				outFile.write(fileBuffer.data(), fileSize);
@@ -123,6 +123,17 @@ public:
 				std::cout << WSAGetLastError() << std::endl;
 			}
 			outFile.close();
+			std::string conf = "Confirm";
+			int confLength = conf.size();
+			send(clientSocket, (char*)&confLength, sizeof(int), 0);
+			send(clientSocket, conf.c_str(), confLength, 0);
+		}
+		if (choice=="Q")
+		{
+			closesocket(clientSocket);
+			closesocket(serverSocket);
+			WSACleanup();
+			return 78;
 		}
 		closesocket(clientSocket);
 		closesocket(serverSocket);
@@ -139,13 +150,15 @@ private:
 int main()
 {
 	Server serv;
-
+	
 
 	while (true)
 	{
 		std::cout << "started" << std::endl;
 		serv.setUP();
-		serv.ReceiveSend();
+		if (serv.ReceiveSend() == 78) {
+			break;
+		}
 		std::cout << "ended" << std::endl;
 
 	}

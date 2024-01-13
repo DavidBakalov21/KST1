@@ -38,7 +38,7 @@ public:
 	}
 
 	int ReceiveSend(std::string name, std::string choice) {
-
+		
 		if (choice == "get")
 		{
 
@@ -68,7 +68,7 @@ public:
 			}
 			outFile.close();
 		}
-		if (choice == "list")
+		if (choice=="list")
 		{
 			int commandLength = choice.size();
 			send(clientSocket, (char*)&commandLength, sizeof(int), 0);
@@ -76,13 +76,13 @@ public:
 			while (true)
 			{
 				int nameLenght;
-
+				
 				recv(clientSocket, (char*)&nameLenght, sizeof(int), 0);
 				std::vector<char> nameBuffer(nameLenght);
 				recv(clientSocket, nameBuffer.data(), nameLenght, 0);
 				std::string name(nameBuffer.begin(), nameBuffer.end());
 				std::cout << name << std::endl;
-				if (name == "End")
+				if (name=="End")
 				{
 					break;
 				}
@@ -110,11 +110,21 @@ public:
 			}
 
 			file.close();
-
+			int confLenght;
+			recv(clientSocket, (char*)&confLenght, sizeof(int), 0);
+			std::vector<char> confBuffer(confLenght);
+			recv(clientSocket, confBuffer.data(), confLenght, 0);
+			std::string confirmation(confBuffer.begin(), confBuffer.end());
+			std::cout << confirmation << std::endl;
 
 
 		}
-
+		if (choice == "Q") {
+			int commandLength = choice.size();
+			send(clientSocket, (char*)&commandLength, sizeof(int), 0);
+			send(clientSocket, choice.c_str(), choice.size(), 0);
+		}
+		
 		closesocket(clientSocket);
 		WSACleanup();
 		return 0;
@@ -132,7 +142,7 @@ private:
 int main()
 {
 	Client cl;
-
+	
 
 	while (true)
 	{
@@ -143,19 +153,19 @@ int main()
 		std::string text;
 		//std::cout << "Enter a choice: ";
 		std::getline(std::cin, choice);
+		
+		std::getline(std::cin, text);
+		// Initialize Winsock
+
+		
+		cl.ReceiveSend(text, choice);
+		std::cout << "ended" << std::endl;
 		if (choice == "Q")
 		{
 			break;
 		}
-		std::getline(std::cin, text);
-		// Initialize Winsock
-
-
-		cl.ReceiveSend(text, choice);
-		std::cout << "ended" << std::endl;
-
 	}
 	//}
-
+	
 	return 0;
 }
