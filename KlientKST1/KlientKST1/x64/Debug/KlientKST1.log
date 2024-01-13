@@ -1,4 +1,7 @@
 ﻿  KlientKST1.cpp
-C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(60,73): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(37): warning C4715: 'Client::SetUP': not all control paths return a value
+C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(47,22): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(49,50): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(50,19): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(52,39): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Давід\source\repos\Lab1\KlientKST1\KlientKST1\KlientKST1.cpp(61,46): warning C4244: 'argument': conversion from 'std::streamsize' to 'int', possible loss of data
   KlientKST1.vcxproj -> C:\Users\Давід\source\repos\Lab1\KlientKST1\x64\Debug\KlientKST1.exe

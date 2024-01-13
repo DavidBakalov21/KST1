@@ -34,37 +34,45 @@ public:
 			WSACleanup();
 			return 1;
 		}
+		return 0;
 	}
 
-	int RecieveSend(std::string choice, std::string name) {
-		const char* message = choice.c_str();
-		send(clientSocket, message, (int)strlen(message), 0);
+	int ReceiveSend(std::string name, std::string choice) {
+		
+		if (choice == "get")
+		{
 
-		std::ofstream outFile(name, std::ios::binary);
-		if (!outFile.is_open()) {
-			std::cerr << "Failed to open file: " << name << std::endl;
-			return 1;
-		}
 
-		char sizeBuffer[1024];
-		int bytesReceived = recv(clientSocket, sizeBuffer, sizeof(sizeBuffer), 0);
-		if (bytesReceived <= 0) {
-			std::cerr << "Failed to receive file size." << std::endl;
-			return 1;
-		}
-		std::cout << bytesReceived << " size" << std::endl;
-		std::streamsize fileSize = std::stoll(std::string(sizeBuffer, bytesReceived));
-		std::vector<char> fileBuffer(fileSize);
-		std::streamsize totalBytesReceived = 0;
-		while (totalBytesReceived < fileSize) {
-			bytesReceived = recv(clientSocket, fileBuffer.data(), fileBuffer.size(), 0);
-			if (bytesReceived <= 0) {
-				std::cerr << "Failed to receive file data or connection closed." << std::endl;
-				break;
+			const char* nameS = name.c_str();
+			int commandLength = choice.size();
+			send(clientSocket, (char*)&commandLength, sizeof(int), 0);
+			send(clientSocket, choice.c_str(), choice.size(), 0);
+			int nameLength = name.size();
+			send(clientSocket, (char*)&nameLength, sizeof(int), 0);
+			send(clientSocket, nameS, name.size(), 0);
+			std::streamsize fileSize;
+			if (recv(clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) {
+				std::cout << "something went wrong when receiving file size" << std::endl;
+				std::cout << WSAGetLastError() << std::endl;
 			}
-			outFile.write(fileBuffer.data(), bytesReceived);
-			totalBytesReceived += bytesReceived;
+
+			std::ofstream outFile(name, std::ios::binary);
+			std::vector<char> fileBuffer(fileSize);
+			if (recv(clientSocket, fileBuffer.data(), fileSize, 0) != SOCKET_ERROR) {
+				outFile.write(fileBuffer.data(), fileSize);
+			}
+			else
+			{
+				std::cout << "something went wrong when receiving file data" << std::endl;
+				std::cout << WSAGetLastError() << std::endl;
+			}
+			outFile.close();
 		}
+		if (choice=="list")
+		{
+
+		}
+		
 		closesocket(clientSocket);
 		WSACleanup();
 		return 0;
@@ -81,14 +89,31 @@ private:
 
 int main()
 {
-	std::string choice;
-	std::string text;
-	//std::cout << "Enter a choice: ";
-	std::getline(std::cin, choice);
-	std::getline(std::cin, text);
-	// Initialize Winsock
 	Client cl;
-	cl.SetUP();
-	cl.RecieveSend(choice, text);
+	
+
+	while (true)
+	{
+		cl.SetUP();
+		std::cout << "Enter:" << std::endl;
+		std::string choice;
+
+		std::string text;
+		//std::cout << "Enter a choice: ";
+		std::getline(std::cin, choice);
+		if (choice == "Q")
+		{
+			break;
+		}
+		std::getline(std::cin, text);
+		// Initialize Winsock
+
+		
+		cl.ReceiveSend(text, choice);
+		std::cout << "ended" << std::endl;
+
+	}
+	//}
+	
 	return 0;
 }
