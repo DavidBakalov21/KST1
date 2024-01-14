@@ -36,20 +36,26 @@ public:
 		}
 		return 0;
 	}
+	void sendText(std::string text) {
 
+		int textLength = text.size();
+		send(clientSocket, (char*)&textLength, sizeof(int), 0);
+		send(clientSocket, text.c_str(), text.size(), 0);
+	}
+	std::string receiveText() {
+		int textLenght;
+		recv(clientSocket, (char*)&textLenght, sizeof(int), 0);
+		std::vector<char> textBuffer(textLenght);
+		recv(clientSocket, textBuffer.data(), textLenght, 0);
+		std::string text(textBuffer.begin(), textBuffer.end());
+		return text;
+	}
 	int ReceiveSend(std::string name, std::string choice) {
 		
 		if (choice == "get")
 		{
-
-
-			const char* nameS = name.c_str();
-			int commandLength = choice.size();
-			send(clientSocket, (char*)&commandLength, sizeof(int), 0);
-			send(clientSocket, choice.c_str(), choice.size(), 0);
-			int nameLength = name.size();
-			send(clientSocket, (char*)&nameLength, sizeof(int), 0);
-			send(clientSocket, nameS, name.size(), 0);
+			sendText(choice);
+			sendText(name);
 			std::streamsize fileSize;
 			if (recv(clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) {
 				std::cout << "something went wrong when receiving file size" << std::endl;
@@ -70,17 +76,10 @@ public:
 		}
 		if (choice=="list")
 		{
-			int commandLength = choice.size();
-			send(clientSocket, (char*)&commandLength, sizeof(int), 0);
-			send(clientSocket, choice.c_str(), choice.size(), 0);
+			sendText(choice);
 			while (true)
 			{
-				int nameLenght;
-				
-				recv(clientSocket, (char*)&nameLenght, sizeof(int), 0);
-				std::vector<char> nameBuffer(nameLenght);
-				recv(clientSocket, nameBuffer.data(), nameLenght, 0);
-				std::string name(nameBuffer.begin(), nameBuffer.end());
+				std::string name = receiveText();
 				std::cout << name << std::endl;
 				if (name=="End")
 				{
@@ -91,14 +90,8 @@ public:
 
 		}
 		if (choice == "put") {
-			int commandLength = choice.size();
-			send(clientSocket, (char*)&commandLength, sizeof(int), 0);
-			send(clientSocket, choice.c_str(), choice.size(), 0);
-
-			int nameLength = name.size();
-			const char* nameS = name.c_str();
-			send(clientSocket, (char*)&nameLength, sizeof(int), 0);
-			send(clientSocket, nameS, name.size(), 0);
+			sendText(choice);
+			sendText(name);
 			std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\KlientKST1\\KlientKST1\\client\\" + name;
 			std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 			std::streamsize fileSize = file.tellg();
@@ -110,19 +103,29 @@ public:
 			}
 
 			file.close();
-			int confLenght;
-			recv(clientSocket, (char*)&confLenght, sizeof(int), 0);
-			std::vector<char> confBuffer(confLenght);
-			recv(clientSocket, confBuffer.data(), confLenght, 0);
-			std::string confirmation(confBuffer.begin(), confBuffer.end());
-			std::cout << confirmation << std::endl;
+			std::string conformation = receiveText();
+			std::cout << conformation << std::endl;
 
 
 		}
 		if (choice == "Q") {
-			int commandLength = choice.size();
-			send(clientSocket, (char*)&commandLength, sizeof(int), 0);
-			send(clientSocket, choice.c_str(), choice.size(), 0);
+			sendText(choice);
+		}
+		if (choice == "delete") {
+			sendText(choice);
+			sendText(name);
+
+			std::cout << receiveText() << std::endl;
+		}
+		if (choice=="info")
+		{
+			sendText(choice);
+			sendText(name);
+			std::cout << "size: " << receiveText() << std::endl;
+			std::cout << "last modified: " << receiveText() << std::endl;
+			
+			
+
 		}
 		
 		closesocket(clientSocket);
