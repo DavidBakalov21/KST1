@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    Communication protocol description
+Let’s start from the implementation of send/receive message logic for text.
+Send message mechanic is created by:
+1.  sending 4 bytes(size of int, checked in the app) as the size of the message itself. So on the other side the appropriate buffer was created.
+2.message itself is sent.
+3. data  and received and stored in the created buffer and can be accessed.
+
+For files it is mostly the same, however because of streamsize type is used we are sending not 4 bytes , but 8 (size of streamsize) 
+
+based on this mechanism all commands can be described 
+get command:
+1.client sends command to server 
+2. client sends name to server 
+3.server sends file’s size 
+4.server sends file from the “database folder”
+5. client receives file size
+6.client receives file data from server
+
+list command:
+client sends command to server
+server sends each file name one by one
+client receives names one by one
+When there are no names remain, server sends “End” in order to stop client from listening in loop
+
+put command:
+1.client sends command to server 
+2. client sends name to server 
+3.client sends file’s size
+4 client sends file’s data from client folder
+after server received file it sends confirmation message(“Confirm”) to client
+
+delete command:
+1.client sends command to server 
+2. client sends name to server 
+3.server deletes file and sends confirmation to client
+
+
+info command:
+1.client sends command to server 
+2. client sends name to server 
+3.server sends size
+4. server sends last modification time
+
+q command:
+1.client sends command to server 
+2. server shuts down
+3. client shuts down
+
+
+
+
+
+</body>
+</html>
