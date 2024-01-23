@@ -47,7 +47,7 @@ class Client
 public:
 	Client() {
 		st.SetUP();
-			
+
 	}
 	void sendText(const std::string& text) {
 		int textLength = text.size();
@@ -60,7 +60,7 @@ public:
 		std::vector<char> textBuffer(textLenght);
 		recv(st.clientSocket, textBuffer.data(), textLenght, 0);
 		return std::string(textBuffer.begin(), textBuffer.end());
-		
+
 	}
 
 	void GetF(const std::string& name, const std::string& choice) {
@@ -71,16 +71,16 @@ public:
 			std::cout << "something went wrong when receiving file size" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
 		}
-
+		std::cout << "File size is:" << fileSize << std::endl;
 		std::ofstream outFile(name, std::ios::binary);
-		std::vector<char> fileBuffer(fileSize);
-		if (recv(st.clientSocket, fileBuffer.data(), fileSize, 0) != SOCKET_ERROR) {
-			outFile.write(fileBuffer.data(), fileSize);
-		}
-		else
-		{
-			std::cout << "something went wrong when receiving file data" << std::endl;
-			std::cout << WSAGetLastError() << std::endl;
+		std::streamsize totalReceived = 0;
+		while (totalReceived < fileSize) {
+			char buffer[2500];
+			std::streamsize bytesReceived = recv(st.clientSocket, buffer, sizeof(buffer), 0);
+			outFile.write(buffer, bytesReceived);
+			totalReceived += bytesReceived;
+			std::cout << "current file size:" << totalReceived << std::endl;
+
 		}
 		outFile.close();
 	}
@@ -102,32 +102,39 @@ public:
 	void Put(const std::string& name, const std::string& choice) {
 		sendText(choice);
 		sendText(name);
-		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\KlientKST1\\KlientKST1\\client\\" + name;
+		std::string filepath = "C:\\Users\\Давід\\source\\repos\\ClientLab2\\ClientLab2\\client\\" + name;
 		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 		std::streamsize fileSize = file.tellg();
 		file.seekg(0, std::ios::beg);
 		send(st.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
-		std::vector<char> fileBuffer(fileSize);
-		if (file.read(fileBuffer.data(), fileSize)) {
-			send(st.clientSocket, fileBuffer.data(), fileSize, 0);
-		}
 
+
+		std::streamsize totalSent = 0;
+		char buffer[2500];
+		while (totalSent < fileSize) {
+			std::streamsize remaining = fileSize - totalSent;
+			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
+			file.read(buffer, currentChunkSize);
+			send(st.clientSocket, buffer, currentChunkSize, 0);
+			//std::cout << "Chunk size is:" << currentChunkSize << std::endl;
+			totalSent += currentChunkSize;
+		}
 		file.close();
 		std::string confirmation = receiveText();
 		std::cout << confirmation << std::endl;
 
 	}
 	int ReceiveSend(const std::string& choice) {
-		
+
 		if (choice == "get")
 		{
 			std::string name;
 			std::getline(std::cin, name);
 			GetF(name, choice);
 		}
-		if (choice=="list")
+		if (choice == "list")
 		{
-			
+
 			List(choice);
 
 		}
@@ -147,7 +154,7 @@ public:
 
 			std::cout << receiveText() << std::endl;
 		}
-		if (choice=="info")
+		if (choice == "info")
 		{
 			std::string name;
 			std::getline(std::cin, name);
@@ -156,7 +163,7 @@ public:
 			std::cout << "size: " << receiveText() << std::endl;
 			std::cout << "last modified: " << receiveText() << std::endl;
 		}
-		
+
 		closesocket(st.clientSocket);
 		WSACleanup();
 		return 0;
@@ -164,14 +171,16 @@ public:
 
 private:
 	Setuper st;
-	
+
 };
 
 
 int main()
 {
-	
-	
+	std::cout << "name" << std::endl;
+	std::string name;
+	std::getline(std::cin, name);
+
 
 	while (true)
 	{
@@ -186,6 +195,6 @@ int main()
 			break;
 		}
 	}
-	
+
 	return 0;
 }
