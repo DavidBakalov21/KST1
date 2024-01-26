@@ -177,14 +177,17 @@ private:
 
 int main()
 {
-	std::cout << "name" << std::endl;
-	std::string name;
-	std::getline(std::cin, name);
+	
 
 
 	while (true)
 	{
 		Client cl;
+
+		std::cout << "name" << std::endl;
+		std::string name;
+		std::getline(std::cin, name);
+		cl.sendText(name);
 		std::cout << "Enter:" << std::endl;
 		std::string choice;
 		std::getline(std::cin, choice);

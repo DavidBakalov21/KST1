@@ -89,7 +89,7 @@ public:
 	void GetF() {
 		std::string name = receiveText();
 
-		std::string filepath = "C:\\Users\\Давід\\source\\repos\\ServerLab2\\Server\\database\\" + name;
+		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
 
 		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 		std::streamsize fileSize = file.tellg();
@@ -108,7 +108,15 @@ public:
 
 		file.close();
 	}
+	void ReceiveName() {
 
+		std::string folderName = receiveText();
+		if (!std::filesystem::create_directory("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" +folderName)) {
+			std::cout << "Directory already exists"<<std::endl;
+		}
+		folder = folderName;
+		
+	}
 	void PUT() {
 		std::string name = receiveText();
 		std::streamsize fileSize;
@@ -116,7 +124,9 @@ public:
 			std::cout << "something went wrong when receiving file size" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
 		}
-		std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\ServerLab2\\Server\\database\\" + name, std::ios::binary);
+		
+		//std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\ServerLab2\\Server\\database\\" + name, std::ios::binary);
+		std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name, std::ios::binary);
 		std::streamsize totalReceived = 0;
 		while (totalReceived < fileSize) {
 			char buffer[2500];
@@ -137,7 +147,7 @@ public:
 		}
 		if (choice == "list")
 		{
-			for (const auto& entry : std::filesystem::directory_iterator("C:\\Users\\Давід\\source\\repos\\ServerLab2\\Server\\database")) {
+			for (const auto& entry : std::filesystem::directory_iterator("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\")) {
 				std::string Name = entry.path().filename().string();
 				sendText(Name);
 			}
@@ -158,7 +168,7 @@ public:
 		if (choice == "delete")
 		{
 			std::string name = receiveText();
-			std::string filepath = "C:\\Users\\Давід\\source\\repos\\ServerLab2\\Server\\database\\" + name;
+			std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
 			remove(filepath.c_str());
 			std::string del = "deleted";
 			sendText(del);
@@ -167,7 +177,7 @@ public:
 		if (choice == "info")
 		{
 			std::string name = receiveText();
-			std::string filepath = "C:\\Users\\Давід\\source\\repos\\ServerLab2\\Server\\database\\" + name;
+			std::string filepath ="C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
 			std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 			std::streamsize fileSize = file.tellg();
 			std::filesystem::file_time_type modtime = std::filesystem::last_write_time(filepath);
@@ -183,6 +193,7 @@ public:
 		return 0;
 	}
 private:
+	std::string folder;
 	SetuperServ sr;
 };
 int main()
@@ -190,7 +201,10 @@ int main()
 	while (true)
 	{
 		Server serv;
+		serv.ReceiveName();
+		
 		std::cout << "started" << std::endl;
+		
 		if (serv.ReceiveSend() == 78) {
 			break;
 		}
