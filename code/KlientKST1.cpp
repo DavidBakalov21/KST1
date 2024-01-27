@@ -62,7 +62,6 @@ public:
 		return std::string(textBuffer.begin(), textBuffer.end());
 
 	}
-
 	void GetF(const std::string& name, const std::string& choice) {
 		sendText(choice);
 		sendText(name);
@@ -84,7 +83,6 @@ public:
 		}
 		outFile.close();
 	}
-
 	void List(const std::string& choice) {
 		sendText(choice);
 		while (true)
@@ -102,7 +100,7 @@ public:
 	void Put(const std::string& name, const std::string& choice) {
 		sendText(choice);
 		sendText(name);
-		std::string filepath = "C:\\Users\\Давід\\source\\repos\\ClientLab2\\ClientLab2\\client\\" + name;
+		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\KlientKST1\\KlientKST1\\client\\" + name;
 		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 		std::streamsize fileSize = file.tellg();
 		file.seekg(0, std::ios::beg);
@@ -116,7 +114,7 @@ public:
 			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
 			file.read(buffer, currentChunkSize);
 			send(st.clientSocket, buffer, currentChunkSize, 0);
-			//std::cout << "Chunk size is:" << currentChunkSize << std::endl;
+			std::cout << "Chunk size is:" << currentChunkSize << std::endl;
 			totalSent += currentChunkSize;
 		}
 		file.close();
@@ -124,80 +122,68 @@ public:
 		std::cout << confirmation << std::endl;
 
 	}
-	int ReceiveSend(const std::string& choice) {
-
-		if (choice == "get")
+	int ReceiveSend() {
+		while (true)
 		{
-			std::string name;
-			std::getline(std::cin, name);
-			GetF(name, choice);
-		}
-		if (choice == "list")
-		{
+			std::cout << "Enter:" << std::endl;
+			std::string choice;
+			std::getline(std::cin, choice);
+			//std::cout << "ended" << std::endl;
+			if (choice == "get")
+			{
+				std::string name;
+				std::getline(std::cin, name);
+				GetF(name, choice);
+			}
 
-			List(choice);
+			if (choice == "list")
+			{
+				List(choice);
+			}
+			if (choice == "put") {
+				std::string name;
+				std::getline(std::cin, name);
+				Put(name, choice);
+			}
+			if (choice == "Q") {
+				sendText(choice);
+				break;
+			}
+			if (choice == "delete") {
+				std::string name;
+				std::getline(std::cin, name);
+				sendText(choice);
+				sendText(name);
 
+				std::cout << receiveText() << std::endl;
+			}
+			if (choice == "info")
+			{
+				std::string name;
+				std::getline(std::cin, name);
+				sendText(choice);
+				sendText(name);
+				std::cout << "size: " << receiveText() << std::endl;
+				std::cout << "last modified: " << receiveText() << std::endl;
+			}
 		}
-		if (choice == "put") {
-			std::string name;
-			std::getline(std::cin, name);
-			Put(name, choice);
-		}
-		if (choice == "Q") {
-			sendText(choice);
-		}
-		if (choice == "delete") {
-			std::string name;
-			std::getline(std::cin, name);
-			sendText(choice);
-			sendText(name);
-
-			std::cout << receiveText() << std::endl;
-		}
-		if (choice == "info")
-		{
-			std::string name;
-			std::getline(std::cin, name);
-			sendText(choice);
-			sendText(name);
-			std::cout << "size: " << receiveText() << std::endl;
-			std::cout << "last modified: " << receiveText() << std::endl;
-		}
-
 		closesocket(st.clientSocket);
 		WSACleanup();
 		return 0;
 	}
-
 private:
 	Setuper st;
 
 };
 
-
 int main()
 {
-	
+	Client cl;
 
-
-	while (true)
-	{
-		Client cl;
-
-		std::cout << "name" << std::endl;
-		std::string name;
-		std::getline(std::cin, name);
-		cl.sendText(name);
-		std::cout << "Enter:" << std::endl;
-		std::string choice;
-		std::getline(std::cin, choice);
-		cl.ReceiveSend(choice);
-		std::cout << "ended" << std::endl;
-		if (choice == "Q")
-		{
-			break;
-		}
-	}
-
+	std::cout << "name" << std::endl;
+	std::string name;
+	std::getline(std::cin, name);
+	cl.sendText(name);
+	cl.ReceiveSend();
 	return 0;
 }
