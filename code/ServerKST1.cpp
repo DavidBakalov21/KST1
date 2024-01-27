@@ -61,15 +61,15 @@ public:
 private:
 	WSADATA wsaData;
 	int port = 12345;
-	
+
 	sockaddr_in serverAddr;
-	
+
 };
 class Server
 {
 public:
 	Server() {
-	sr.setUP();
+		sr.setUP();
 	}
 	void sendText(const std::string& text) {
 
@@ -83,26 +83,30 @@ public:
 		std::vector<char> textBuffer(textLenght);
 		recv(sr.clientSocket, textBuffer.data(), textLenght, 0);
 		return std::string(textBuffer.begin(), textBuffer.end());
-		
-	}
 
+	}
 	void GetF() {
 		std::string name = receiveText();
 
-		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database\\" + name;
+		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
 
 		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 		std::streamsize fileSize = file.tellg();
 		file.seekg(0, std::ios::beg);
 		send(sr.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
-		std::vector<char> fileBuffer(fileSize);
-		if (file.read(fileBuffer.data(), fileSize)) {
-			send(sr.clientSocket, fileBuffer.data(), fileSize, 0);
+		std::streamsize totalSent = 0;
+		char buffer[2500];
+		while (totalSent < fileSize) {
+			std::streamsize remaining = fileSize - totalSent;
+			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
+			file.read(buffer, currentChunkSize);
+			send(sr.clientSocket, buffer, currentChunkSize, 0);
+			//std::cout << "Chunk size is:" << currentChunkSize << std::endl;
+			totalSent += currentChunkSize;
 		}
 
 		file.close();
 	}
-
 	void PUT() {
 		std::string name = receiveText();
 		std::streamsize fileSize;
@@ -111,67 +115,79 @@ public:
 			std::cout << WSAGetLastError() << std::endl;
 		}
 
-		std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database\\" + name, std::ios::binary);
-		std::vector<char> fileBuffer(fileSize);
-		if (recv(sr.clientSocket, fileBuffer.data(), fileSize, 0) != SOCKET_ERROR) {
-			outFile.write(fileBuffer.data(), fileSize);
-		}
-		else
-		{
-			std::cout << "something went wrong when receiving file data" << std::endl;
-			std::cout << WSAGetLastError() << std::endl;
+		//std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\ServerLab2\\Server\\database\\" + name, std::ios::binary);
+		std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name, std::ios::binary);
+		std::streamsize totalReceived = 0;
+		while (totalReceived < fileSize) {
+			char buffer[2500];
+			std::streamsize bytesReceived = recv(sr.clientSocket, buffer, sizeof(buffer), 0);
+			outFile.write(buffer, bytesReceived);
+			totalReceived += bytesReceived;
+			std::cout << "current file size:" << totalReceived << std::endl;
 		}
 		outFile.close();
 		std::string conf = "Confirm";
 		sendText(conf);
 	}
+	void ReceiveName() {
+
+		std::string folderName = receiveText();
+		if (!std::filesystem::create_directory("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folderName)) {
+			std::cout << "Directory already exists" << std::endl;
+		}
+		folder = folderName;
+
+	}
+
 
 	int ReceiveSend() {
-		std::string choice = receiveText();
-		if (choice == "get") {
-			GetF();
-		}
-		if (choice=="list")
-		{
-			for (const auto& entry : std::filesystem::directory_iterator("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database")) {
-				std::string Name = entry.path().filename().string();
-				sendText(Name);
+		while (true) {
+			std::string choice = receiveText();
+			if (choice == "list")
+			{
+				for (const auto& entry : std::filesystem::directory_iterator("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\")) {
+					std::string Name = entry.path().filename().string();
+					sendText(Name);
+				}
+				std::string end = "End";
+				sendText(end);
 			}
-			std::string end = "End";
-			sendText(end);
-		}
-		if (choice=="put")
-		{
-			PUT();
-		}
-		if (choice=="Q")
-		{
-			closesocket(sr.clientSocket);
-			closesocket(sr.serverSocket);
-			WSACleanup();
-			return 78;
-		}
-		if (choice=="delete")
-		{
-			std::string name = receiveText();
-			std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database\\" + name;
-			remove(filepath.c_str());
-			std::string del = "deleted";
-			sendText(del);
+			if (choice == "get") {
+				GetF();
+			}
+			if (choice == "put")
+			{
+				PUT();
+			}
+			if (choice == "Q")
+			{
+				closesocket(sr.clientSocket);
+				closesocket(sr.serverSocket);
+				WSACleanup();
+				return 78;
+			}
+			if (choice == "delete")
+			{
+				std::string name = receiveText();
+				std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
+				remove(filepath.c_str());
+				std::string del = "deleted";
+				sendText(del);
 
-		}
-		if (choice=="info")
-		{
-			std::string name = receiveText();
-			std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\database\\" + name;
-			std::ifstream file(filepath, std::ios::binary | std::ios::ate);
-			std::streamsize fileSize = file.tellg();
-			std::filesystem::file_time_type modtime = std::filesystem::last_write_time(filepath);
-			std::string size = std::to_string(fileSize);
-			std::string lastMod = std::format("{}", modtime);
-			sendText(size);
-			sendText(lastMod);
+			}
+			if (choice == "info")
+			{
+				std::string name = receiveText();
+				std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
+				std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+				std::streamsize fileSize = file.tellg();
+				std::filesystem::file_time_type modtime = std::filesystem::last_write_time(filepath);
+				std::string size = std::to_string(fileSize);
+				std::string lastMod = std::format("{}", modtime);
+				sendText(size);
+				sendText(lastMod);
 
+			}
 		}
 		closesocket(sr.clientSocket);
 		closesocket(sr.serverSocket);
@@ -179,18 +195,18 @@ public:
 		return 0;
 	}
 private:
+	std::string folder;
 	SetuperServ sr;
 };
 int main()
 {
-	while (true)
-	{
-		Server serv;
-		std::cout << "started" << std::endl;
-		if (serv.ReceiveSend() == 78) {
-			break;
-		}
-		std::cout << "ended" << std::endl;
+	Server serv;
+	serv.ReceiveName();
 
-	}
+	std::cout << "started" << std::endl;
+
+	serv.ReceiveSend();
+
+	std::cout << "ended" << std::endl;
+
 }
