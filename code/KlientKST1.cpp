@@ -6,10 +6,12 @@
 #include <vector>
 
 #pragma comment(lib, "ws2_32.lib")
-class Setuper {
+class Setuper 
+{
 public:
 	SOCKET clientSocket;
-	int SetUP() {
+	int SetUP() 
+	{
 		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 		{
 			std::cerr << "WSAStartup failed" << std::endl;
@@ -39,23 +41,25 @@ private:
 	int port = 12345;
 	PCWSTR serverIp = L"127.0.0.1";
 	sockaddr_in serverAddr;
-
 };
 
 class Client
 {
 public:
-	Client() {
+	Client() 
+	{
 		st.SetUP();
 	}
 
-	void sendText(const std::string& text) {
+	void sendText(const std::string& text)
+	{
 		int textLength = text.size();
 		send(st.clientSocket, (char*)&textLength, sizeof(int), 0);
 		send(st.clientSocket, text.c_str(), textLength, 0);
 	}
 
-	std::string receiveText() {
+	std::string receiveText() 
+	{
 		int textLenght;
 		recv(st.clientSocket, (char*)&textLenght, sizeof(int), 0);
 		std::vector<char> textBuffer(textLenght);
@@ -63,14 +67,13 @@ public:
 		return std::string(textBuffer.begin(), textBuffer.end());
 	}
 
-	void List(const std::string& choice) {
+	void List(const std::string& choice) 
+	{
 		sendText(choice);
 		while (true)
 		{
-			std::string name = receiveText(); ///do not make a copy
+			std::string name = receiveText();
 			std::cout << name << std::endl;
-
-			//mention it in application ptotocol
 			if (name == "End")
 			{
 				break;
@@ -78,7 +81,8 @@ public:
 		}
 	}
 
-	void Put(const std::string& name, const std::string& choice) {
+	void Put(const std::string& name, const std::string& choice) 
+	{
 		sendText(choice);
 		sendText(name);
 		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\KlientKST1\\KlientKST1\\client\\" + name;
@@ -88,7 +92,8 @@ public:
 		send(st.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
 		std::streamsize totalSent = 0;
 		char buffer[2500];
-		while (totalSent < fileSize) {
+		while (totalSent < fileSize)
+		{
 			std::streamsize remaining = fileSize - totalSent;
 			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
 			file.read(buffer, currentChunkSize);
@@ -101,29 +106,32 @@ public:
 		std::cout << confirmation << std::endl;
 	}
 
-	void GetF(const std::string& name, const std::string& choice) {
+	void GetF(const std::string& name, const std::string& choice) 
+	{
 		sendText(choice);
 		sendText(name);
 		std::streamsize fileSize;
-		if (recv(st.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) {
+		if (recv(st.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) 
+		{
 			std::cout << "something went wrong when receiving file size" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
 		}
 		std::cout << "File size is:" << fileSize << std::endl;
 		std::ofstream outFile(name, std::ios::binary);
 		std::streamsize totalReceived = 0;
-		while (totalReceived < fileSize) {
+		while (totalReceived < fileSize)
+		{
 			char buffer[2500];
 			std::streamsize bytesReceived = recv(st.clientSocket, buffer, sizeof(buffer), 0);
 			outFile.write(buffer, bytesReceived);
 			totalReceived += bytesReceived;
 			std::cout << "current file size:" << totalReceived << std::endl;
-
 		}
 		outFile.close();
 	}
 
-	int ReceiveSend() {
+	int ReceiveSend() 
+	{
 		while (true)
 		{
 			std::cout << "name" << std::endl;
@@ -143,21 +151,23 @@ public:
 				std::getline(std::cin, name);
 				GetF(name, choice);
 			}
-			if (choice == "put") {
+			if (choice == "put")
+			{
 				std::string name;
 				std::getline(std::cin, name);
 				Put(name, choice);
 			}
-			if (choice == "Q") {
+			if (choice == "Q")
+			{
 				sendText(choice);
 				break;
 			}
-			if (choice == "delete") {
+			if (choice == "delete") 
+			{
 				std::string name;
 				std::getline(std::cin, name);
 				sendText(choice);
 				sendText(name);
-
 				std::cout << receiveText() << std::endl;
 			}
 			if (choice == "info")
