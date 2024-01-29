@@ -47,21 +47,60 @@ class Client
 public:
 	Client() {
 		st.SetUP();
-
 	}
+
 	void sendText(const std::string& text) {
 		int textLength = text.size();
 		send(st.clientSocket, (char*)&textLength, sizeof(int), 0);
 		send(st.clientSocket, text.c_str(), textLength, 0);
 	}
+
 	std::string receiveText() {
 		int textLenght;
 		recv(st.clientSocket, (char*)&textLenght, sizeof(int), 0);
 		std::vector<char> textBuffer(textLenght);
 		recv(st.clientSocket, textBuffer.data(), textLenght, 0);
 		return std::string(textBuffer.begin(), textBuffer.end());
-
 	}
+
+	void List(const std::string& choice) {
+		sendText(choice);
+		while (true)
+		{
+			std::string name = receiveText(); ///do not make a copy
+			std::cout << name << std::endl;
+
+			//mention it in application ptotocol
+			if (name == "End")
+			{
+				break;
+			}
+		}
+	}
+
+	void Put(const std::string& name, const std::string& choice) {
+		sendText(choice);
+		sendText(name);
+		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\KlientKST1\\KlientKST1\\client\\" + name;
+		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+		std::streamsize fileSize = file.tellg();
+		file.seekg(0, std::ios::beg);
+		send(st.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
+		std::streamsize totalSent = 0;
+		char buffer[2500];
+		while (totalSent < fileSize) {
+			std::streamsize remaining = fileSize - totalSent;
+			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
+			file.read(buffer, currentChunkSize);
+			send(st.clientSocket, buffer, currentChunkSize, 0);
+			std::cout << "Chunk size is:" << currentChunkSize << std::endl;
+			totalSent += currentChunkSize;
+		}
+		file.close();
+		std::string confirmation = receiveText();
+		std::cout << confirmation << std::endl;
+	}
+
 	void GetF(const std::string& name, const std::string& choice) {
 		sendText(choice);
 		sendText(name);
@@ -83,62 +122,26 @@ public:
 		}
 		outFile.close();
 	}
-	void List(const std::string& choice) {
-		sendText(choice);
-		while (true)
-		{
-			std::string name = receiveText(); ///do not make a copy
-			std::cout << name << std::endl;
 
-			//mention it in application ptotocol
-			if (name == "End")
-			{
-				break;
-			}
-		}
-	}
-	void Put(const std::string& name, const std::string& choice) {
-		sendText(choice);
-		sendText(name);
-		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\KlientKST1\\KlientKST1\\client\\" + name;
-		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
-		std::streamsize fileSize = file.tellg();
-		file.seekg(0, std::ios::beg);
-		send(st.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
-
-
-		std::streamsize totalSent = 0;
-		char buffer[2500];
-		while (totalSent < fileSize) {
-			std::streamsize remaining = fileSize - totalSent;
-			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
-			file.read(buffer, currentChunkSize);
-			send(st.clientSocket, buffer, currentChunkSize, 0);
-			std::cout << "Chunk size is:" << currentChunkSize << std::endl;
-			totalSent += currentChunkSize;
-		}
-		file.close();
-		std::string confirmation = receiveText();
-		std::cout << confirmation << std::endl;
-
-	}
 	int ReceiveSend() {
 		while (true)
 		{
+			std::cout << "name" << std::endl;
+			std::string name;
+			std::getline(std::cin, name);
+			sendText(name);
 			std::cout << "Enter:" << std::endl;
 			std::string choice;
 			std::getline(std::cin, choice);
-			//std::cout << "ended" << std::endl;
+			if (choice == "list")
+			{
+				List(choice);
+			}
 			if (choice == "get")
 			{
 				std::string name;
 				std::getline(std::cin, name);
 				GetF(name, choice);
-			}
-
-			if (choice == "list")
-			{
-				List(choice);
 			}
 			if (choice == "put") {
 				std::string name;
@@ -173,17 +176,10 @@ public:
 	}
 private:
 	Setuper st;
-
 };
-
 int main()
 {
 	Client cl;
-
-	std::cout << "name" << std::endl;
-	std::string name;
-	std::getline(std::cin, name);
-	cl.sendText(name);
 	cl.ReceiveSend();
 	return 0;
 }

@@ -8,6 +8,7 @@
 #include <format>
 // Linking the library needed for network communication
 #pragma comment(lib, "ws2_32.lib")
+const int EXIT_CODE = 78;
 class SetuperServ {
 public:
 	SOCKET clientSocket;
@@ -48,6 +49,11 @@ public:
 			WSACleanup();
 			return 1;
 		}
+		
+		return 0;
+	}
+
+	int accpetUser() {
 		clientSocket = accept(serverSocket, nullptr, nullptr);
 		if (clientSocket == INVALID_SOCKET)
 		{
@@ -56,14 +62,12 @@ public:
 			WSACleanup();
 			return 1;
 		}
-		return 0;
+		return clientSocket;
 	}
 private:
 	WSADATA wsaData;
 	int port = 12345;
-
 	sockaddr_in serverAddr;
-
 };
 class Server
 {
@@ -71,125 +75,136 @@ public:
 	Server() {
 		sr.setUP();
 	}
-	void sendText(const std::string& text) {
+
+	void sendText(const std::string& text, const int clientSocket) {
 
 		int textLength = text.size();
-		send(sr.clientSocket, (char*)&textLength, sizeof(int), 0);
-		send(sr.clientSocket, text.c_str(), textLength, 0);
+		send(clientSocket, (char*)&textLength, sizeof(int), 0);
+		send(clientSocket, text.c_str(), textLength, 0);
 	}
-	std::string receiveText() {
+
+	std::string receiveText(const int clientSocket) {
 		int textLenght;
-		recv(sr.clientSocket, (char*)&textLenght, sizeof(int), 0);
+		recv(clientSocket, (char*)&textLenght, sizeof(int), 0);
 		std::vector<char> textBuffer(textLenght);
-		recv(sr.clientSocket, textBuffer.data(), textLenght, 0);
+		recv(clientSocket, textBuffer.data(), textLenght, 0);
 		return std::string(textBuffer.begin(), textBuffer.end());
 
 	}
-	void GetF() {
-		std::string name = receiveText();
 
+	void GetF(const int clientSocket) {
+		std::string name = receiveText(clientSocket);
 		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
-
 		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 		std::streamsize fileSize = file.tellg();
 		file.seekg(0, std::ios::beg);
-		send(sr.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
+		send(clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
 		std::streamsize totalSent = 0;
 		char buffer[2500];
 		while (totalSent < fileSize) {
 			std::streamsize remaining = fileSize - totalSent;
 			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
 			file.read(buffer, currentChunkSize);
-			send(sr.clientSocket, buffer, currentChunkSize, 0);
+			send(clientSocket, buffer, currentChunkSize, 0);
 			//std::cout << "Chunk size is:" << currentChunkSize << std::endl;
 			totalSent += currentChunkSize;
 		}
 
 		file.close();
 	}
-	void PUT() {
-		std::string name = receiveText();
+
+	void PUT(const int clientSocket) {
+		std::string name = receiveText(clientSocket);
 		std::streamsize fileSize;
-		if (recv(sr.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) {
+		if (recv(clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) {
 			std::cout << "something went wrong when receiving file size" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
 		}
-
-		//std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\ServerLab2\\Server\\database\\" + name, std::ios::binary);
 		std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name, std::ios::binary);
 		std::streamsize totalReceived = 0;
 		while (totalReceived < fileSize) {
 			char buffer[2500];
-			std::streamsize bytesReceived = recv(sr.clientSocket, buffer, sizeof(buffer), 0);
+			std::streamsize bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 			outFile.write(buffer, bytesReceived);
 			totalReceived += bytesReceived;
 			std::cout << "current file size:" << totalReceived << std::endl;
 		}
 		outFile.close();
 		std::string conf = "Confirm";
-		sendText(conf);
+		sendText(conf, clientSocket);
 	}
-	void ReceiveName() {
 
-		std::string folderName = receiveText();
-		if (!std::filesystem::create_directory("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folderName)) {
+	void ReceiveName(const int clientSocket) {
+
+		 folder = receiveText(clientSocket);
+		if (!std::filesystem::create_directory("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder)) {
 			std::cout << "Directory already exists" << std::endl;
 		}
-		folder = folderName;
-
+	}
+	void MultithreadServer() {
+		std::vector<std::thread> threads;
+		while (true)
+		{
+			int client = sr.accpetUser();
+			threads.emplace_back([this, client]() { ReceiveSend(client); });
+			//
+		}
+		for (auto& t : threads) {
+				t.join();
+		}
 	}
 
-
-	int ReceiveSend() {
+	int ReceiveSend(const int clientSocket) {
 		while (true) {
-			std::string choice = receiveText();
+			std::cout << "started" << std::endl;
+			ReceiveName(clientSocket);
+			std::string choice = receiveText(clientSocket);
 			if (choice == "list")
 			{
 				for (const auto& entry : std::filesystem::directory_iterator("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\")) {
 					std::string Name = entry.path().filename().string();
-					sendText(Name);
+					sendText(Name, clientSocket);
 				}
 				std::string end = "End";
-				sendText(end);
+				sendText(end, clientSocket);
 			}
 			if (choice == "get") {
-				GetF();
+				GetF(clientSocket);
 			}
 			if (choice == "put")
 			{
-				PUT();
+				PUT(clientSocket);
 			}
 			if (choice == "Q")
 			{
-				closesocket(sr.clientSocket);
-				closesocket(sr.serverSocket);
-				WSACleanup();
-				return 78;
+				closesocket(clientSocket);
+				return EXIT_CODE;
 			}
 			if (choice == "delete")
 			{
-				std::string name = receiveText();
+				std::string name = receiveText(clientSocket);
 				std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
 				remove(filepath.c_str());
 				std::string del = "deleted";
-				sendText(del);
+				sendText(del,clientSocket);
 
 			}
 			if (choice == "info")
 			{
-				std::string name = receiveText();
+				std::string name = receiveText(clientSocket);
 				std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
 				std::ifstream file(filepath, std::ios::binary | std::ios::ate);
 				std::streamsize fileSize = file.tellg();
 				std::filesystem::file_time_type modtime = std::filesystem::last_write_time(filepath);
 				std::string size = std::to_string(fileSize);
 				std::string lastMod = std::format("{}", modtime);
-				sendText(size);
-				sendText(lastMod);
+				sendText(size, clientSocket);
+				sendText(lastMod, clientSocket);
 
 			}
+			std::cout << "ended" << std::endl;
 		}
-		closesocket(sr.clientSocket);
+		closesocket(clientSocket);
 		closesocket(sr.serverSocket);
 		WSACleanup();
 		return 0;
@@ -201,12 +216,5 @@ private:
 int main()
 {
 	Server serv;
-	serv.ReceiveName();
-
-	std::cout << "started" << std::endl;
-
-	serv.ReceiveSend();
-
-	std::cout << "ended" << std::endl;
-
+	serv.MultithreadServer();
 }
