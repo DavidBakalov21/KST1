@@ -6,6 +6,10 @@
 #include <filesystem>
 #include <cstdio>
 #include <format>
+#include <thread>
+//Refactor code
+// Error casse hanlding when client crashes
+// mutexes for couts
 // Linking the library needed for network communication
 #pragma comment(lib, "ws2_32.lib")
 const int EXIT_CODE = 78;
@@ -13,8 +17,8 @@ class SetuperServ {
 public:
 	SOCKET clientSocket;
 	SOCKET serverSocket;
-	int setUP() {
-
+	int setUP() 
+	{
 		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 		{
 			std::cerr << "WSAStartup failed" << std::endl;
@@ -24,7 +28,6 @@ public:
 		//SOCK_STREAM-wo-way, connection-based byte streams with an OOB data transmission mechanism
 		if (serverSocket == INVALID_SOCKET)
 		{
-
 			std::cerr << "Error creating socket: " << WSAGetLastError() << std::endl;
 			WSACleanup();
 			return 1;
@@ -32,7 +35,6 @@ public:
 		serverAddr.sin_family = AF_INET; // indicates te IP version (like iPv4)
 		serverAddr.sin_addr.s_addr = INADDR_ANY; // it recieves messages from any IP
 		serverAddr.sin_port = htons(port); // port number on which server listens 
-
 		//need to bind socket to local address
 		if (bind(serverSocket, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) == SOCKET_ERROR) //
 		{
@@ -49,11 +51,10 @@ public:
 			WSACleanup();
 			return 1;
 		}
-		
 		return 0;
 	}
-
-	int accpetUser() {
+	int acceptUser()
+	{
 		clientSocket = accept(serverSocket, nullptr, nullptr);
 		if (clientSocket == INVALID_SOCKET)
 		{
@@ -72,18 +73,21 @@ private:
 class Server
 {
 public:
-	Server() {
+	Server()
+	{
 		sr.setUP();
 	}
 
-	void sendText(const std::string& text, const int clientSocket) {
+	void sendText(const std::string& text, const int clientSocket)
+	{
 
 		int textLength = text.size();
 		send(clientSocket, (char*)&textLength, sizeof(int), 0);
 		send(clientSocket, text.c_str(), textLength, 0);
 	}
 
-	std::string receiveText(const int clientSocket) {
+	std::string receiveText(const int clientSocket) 
+	{
 		int textLenght;
 		recv(clientSocket, (char*)&textLenght, sizeof(int), 0);
 		std::vector<char> textBuffer(textLenght);
@@ -92,7 +96,8 @@ public:
 
 	}
 
-	void GetF(const int clientSocket) {
+	void GetF(const int clientSocket)
+	{
 		std::string name = receiveText(clientSocket);
 		std::string filepath = "C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name;
 		std::ifstream file(filepath, std::ios::binary | std::ios::ate);
@@ -101,7 +106,8 @@ public:
 		send(clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
 		std::streamsize totalSent = 0;
 		char buffer[2500];
-		while (totalSent < fileSize) {
+		while (totalSent < fileSize)
+		{
 			std::streamsize remaining = fileSize - totalSent;
 			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
 			file.read(buffer, currentChunkSize);
@@ -109,66 +115,80 @@ public:
 			//std::cout << "Chunk size is:" << currentChunkSize << std::endl;
 			totalSent += currentChunkSize;
 		}
-
 		file.close();
 	}
 
-	void PUT(const int clientSocket) {
+	void PUT(const int clientSocket)
+	{
 		std::string name = receiveText(clientSocket);
 		std::streamsize fileSize;
-		if (recv(clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) {
+		if (recv(clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0) == SOCKET_ERROR) 
+		{
 			std::cout << "something went wrong when receiving file size" << std::endl;
 			std::cout << WSAGetLastError() << std::endl;
 		}
 		std::ofstream outFile("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\" + name, std::ios::binary);
 		std::streamsize totalReceived = 0;
-		while (totalReceived < fileSize) {
+		while (totalReceived < fileSize)
+		{
 			char buffer[2500];
 			std::streamsize bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
 			outFile.write(buffer, bytesReceived);
 			totalReceived += bytesReceived;
+			//lock
 			std::cout << "current file size:" << totalReceived << std::endl;
+			//unlock
 		}
 		outFile.close();
 		std::string conf = "Confirm";
 		sendText(conf, clientSocket);
 	}
 
-	void ReceiveName(const int clientSocket) {
-
-		 folder = receiveText(clientSocket);
-		if (!std::filesystem::create_directory("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder)) {
+	void ReceiveName(const int clientSocket) 
+	{
+		folder = receiveText(clientSocket);
+		if (!std::filesystem::create_directory("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder))
+		{
 			std::cout << "Directory already exists" << std::endl;
 		}
 	}
-	void MultithreadServer() {
+
+	void MultithreadServer() 
+	{
 		std::vector<std::thread> threads;
 		while (true)
 		{
-			int client = sr.accpetUser();
-			threads.emplace_back([this, client]() { ReceiveSend(client); });
-			//
+			int client = sr.acceptUser();
+			if (client!=1)
+			{
+				threads.emplace_back([this, client]() { ReceiveSend(client); });
+			}
 		}
-		for (auto& t : threads) {
-				t.join();
+		for (auto& t : threads) 
+		{
+			t.join();
 		}
 	}
 
-	int ReceiveSend(const int clientSocket) {
-		while (true) {
+	int ReceiveSend(const int clientSocket)
+	{
+		while (true)
+		{
 			std::cout << "started" << std::endl;
 			ReceiveName(clientSocket);
 			std::string choice = receiveText(clientSocket);
 			if (choice == "list")
 			{
-				for (const auto& entry : std::filesystem::directory_iterator("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\")) {
+				for (const auto& entry : std::filesystem::directory_iterator("C:\\Users\\Давід\\source\\repos\\Lab1\\ServerKST1\\ServerKST1\\" + folder + "\\")) 
+				{
 					std::string Name = entry.path().filename().string();
 					sendText(Name, clientSocket);
 				}
 				std::string end = "End";
 				sendText(end, clientSocket);
 			}
-			if (choice == "get") {
+			if (choice == "get") 
+			{
 				GetF(clientSocket);
 			}
 			if (choice == "put")
@@ -213,8 +233,10 @@ private:
 	std::string folder;
 	SetuperServ sr;
 };
+
 int main()
 {
 	Server serv;
 	serv.MultithreadServer();
+	return 0;
 }
