@@ -6,6 +6,7 @@
 #include <vector>
 
 #pragma comment(lib, "ws2_32.lib")
+const int BUFSIZE = 2500;
 class Setuper 
 {
 public:
@@ -91,11 +92,11 @@ public:
 		file.seekg(0, std::ios::beg);
 		send(st.clientSocket, (char*)&fileSize, sizeof(std::streamsize), 0);
 		std::streamsize totalSent = 0;
-		char buffer[2500];
+		char buffer[BUFSIZE];
 		while (totalSent < fileSize)
 		{
 			std::streamsize remaining = fileSize - totalSent;
-			std::streamsize currentChunkSize = (remaining < 2500) ? remaining : 2500;
+			std::streamsize currentChunkSize = (remaining < BUFSIZE) ? remaining : BUFSIZE;
 			file.read(buffer, currentChunkSize);
 			send(st.clientSocket, buffer, currentChunkSize, 0);
 			std::cout << "Chunk size is:" << currentChunkSize << std::endl;
@@ -121,7 +122,7 @@ public:
 		std::streamsize totalReceived = 0;
 		while (totalReceived < fileSize)
 		{
-			char buffer[2500];
+			char buffer[BUFSIZE];
 			std::streamsize bytesReceived = recv(st.clientSocket, buffer, sizeof(buffer), 0);
 			outFile.write(buffer, bytesReceived);
 			totalReceived += bytesReceived;
