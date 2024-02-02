@@ -4,7 +4,7 @@
 #include <string> 
 #include <fstream>
 #include <vector>
-
+#include "printer.h"
 #pragma comment(lib, "ws2_32.lib")
 const int BUFSIZE = 2500;
 class Setuper 
@@ -190,6 +190,7 @@ private:
 };
 int main()
 {
+	Message();
 	Client cl;
 	cl.ReceiveSend();
 	return 0;

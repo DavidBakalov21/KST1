@@ -8,6 +8,7 @@
 #include <format>
 #include <mutex>
 #include <thread>
+#include "printer.h"
 // Linking the library needed for network communication
 #pragma comment(lib, "ws2_32.lib")
 std::mutex m;
@@ -269,7 +270,7 @@ private:
 
 int main()
 {
-	
+	Message();
 	Server serv;
 	serv.MultithreadServer();
 	return 0;
