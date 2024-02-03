@@ -16,8 +16,7 @@ const int EXIT_CODE = 78;
 const int BUFSIZE = 2500;
 class SetuperServ {
 public:
-	SOCKET clientSocket;
-	SOCKET serverSocket;
+	
 	int setUP() 
 	{
 		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
@@ -76,7 +75,12 @@ public:
 		}
 		return clientSocket;
 	}
+	int getServerSocket() {
+		return serverSocket;
+	}
 private:
+	SOCKET clientSocket;
+	SOCKET serverSocket;
 	WSADATA wsaData;
 	int port = 12345;
 	sockaddr_in serverAddr;
@@ -259,7 +263,7 @@ public:
 			m.unlock();
 		}
 		closesocket(clientSocket);
-		closesocket(sr.serverSocket);
+		closesocket(sr.getServerSocket());
 		WSACleanup();
 		return 0;
 	}
